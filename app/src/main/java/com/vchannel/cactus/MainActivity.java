@@ -14,12 +14,22 @@ import android.os.AsyncTask;
 import android.app.ProgressDialog;
 import java.io.IOException;
 
-public class MainActivity extends AppCompatActivity {
+import android.support.v4.widget.SwipeRefreshLayout;
 
-    ArrayList<Issue> issues = new ArrayList<Issue>();
-    IssueAdapter issueAdapter;
-    String url = "https://www.youtube.com/channel/UCgxTPTFbIbCWfTR9I2-5SeQ/videos";
-    ProgressDialog progressDialog;
+import android.util.SparseArray;
+import at.huber.youtubeExtractor.VideoMeta;
+import at.huber.youtubeExtractor.YouTubeExtractor;
+import at.huber.youtubeExtractor.YtFile;
+
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
+
+    final String LOG_TAG = "myLogs";
+
+    private ArrayList<Issue> issues = new ArrayList<Issue>();
+    private IssueAdapter issueAdapter;
+    private String url = "https://www.youtube.com/channel/UCgxTPTFbIbCWfTR9I2-5SeQ/videos";
+    private ProgressDialog progressDialog;
+    private SwipeRefreshLayout swipeRefreshLayout;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -36,7 +46,82 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setTitle(R.string.app_title);
 
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+
+        issueAdapter = new IssueAdapter(MainActivity.this, issues);
+
+        ListView lvMain = (ListView) findViewById(R.id.listView);
+        lvMain.setAdapter(issueAdapter);
+/*
+        lvMain.setOnItemClickListener(new OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                Log.d(LOG_TAG, "itemClick: position = " + position + ", id = " + id);            }
+        });
+        lvMain.setOnItemSelectedListener(new OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> parent, View view,
+                                       int position, long id) {
+                Log.d(LOG_TAG, "itemSelect: position = " + position + ", id = " + id);
+            }
+
+            public void onNothingSelected(AdapterView<?> parent) {
+                Log.d(LOG_TAG, "itemSelect: nothing");
+            }
+        });
+        */
+/*
+        lvMain.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Issue issue = issueAdapter.getIssue(position);
+
+                // Create a progressdialog
+                progressDialog = new ProgressDialog(MainActivity.this);
+                // Set progressdialog message
+                progressDialog.setMessage("Refresh...");
+                progressDialog.setIndeterminate(false);
+                // Show progressdialog
+                progressDialog.show();
+
+                new YouTubeExtractor(MainActivity.this) {
+                    @Override
+                    public void onExtractionComplete(SparseArray<YtFile> ytFiles, VideoMeta vMeta) {
+                        if (ytFiles != null) {
+                            int itag = 22;
+                            String videoUrl = ytFiles.get(itag).getUrl();
+
+                        }
+                    }
+                }.extract(issue.URL, true, true);
+            }
+        });
+        */
+/*
+        {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position,
+                                    long id) {
+
+                Intent intent = new Intent(context, SendMessage.class);
+                String message = "abc";
+                intent.putExtra(EXTRA_MESSAGE, message);
+                startActivity(intent);
+            }
+        });
+*/
+        swipeRefreshLayout.setOnRefreshListener(this);
+
+        refresh();
+    }
+
+    @Override
+    public void onRefresh() {
+        refresh();
+    }
+
+    private void refresh() {
         // Execute DownloadJSON AsyncTask
         new JsoupTask().execute();
     }
@@ -47,13 +132,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            // Create a progressdialog
-            progressDialog = new ProgressDialog(MainActivity.this);
-            // Set progressdialog message
-            progressDialog.setMessage("Refresh...");
-            progressDialog.setIndeterminate(false);
-            // Show progressdialog
-            progressDialog.show();
+
+            // showing refresh animation before making http call
+            swipeRefreshLayout.setRefreshing(true);
+/*
+            */
         }
 
         @Override
@@ -61,13 +144,6 @@ public class MainActivity extends AppCompatActivity {
             try {
                 // Connect to the Website URL
                 Document doc = Jsoup.connect(url).get();
-/*
-                Elements divs = doc.getElementsByClass("yt-lockup clearfix  yt-lockup-video yt-lockup-grid vve-check");
-                Elements divs = doc.getElementsByAttribute("data-context-item-id");
-                for (Element div : divs) {
-                    String id = div.attr("data-context-item-id");
-                }
-                */
 
                 for (Element div : doc.select("div[data-context-item-id]")) {
                     String id = div.attr("data-context-item-id");
@@ -105,12 +181,13 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Void result) {
-            issueAdapter = new IssueAdapter(MainActivity.this, issues);
-            ListView lvMain = (ListView) findViewById(R.id.listView);
-            lvMain.setAdapter(issueAdapter);
+            issueAdapter.updateList(issues);
+
+            // stopping swipe refresh
+            swipeRefreshLayout.setRefreshing(false);
 
             // Close the progressdialog
-            progressDialog.dismiss();
+//            progressDialog.dismiss();
         }
     }
 }

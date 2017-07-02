@@ -1,5 +1,6 @@
 package com.vchannel.cactus;
 
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -8,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -15,7 +17,7 @@ import com.squareup.picasso.Picasso;
  * Created by sseitov on 01.07.17.
  */
 
-public class IssueAdapter extends BaseAdapter {
+public class IssueAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
     Context ctx;
     LayoutInflater inflater;
     ArrayList<Issue> objects;
@@ -24,6 +26,12 @@ public class IssueAdapter extends BaseAdapter {
         ctx = context;
         objects = issues;
         inflater = (LayoutInflater) ctx.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    }
+
+    public void updateList(ArrayList<Issue> results) {
+        objects = results;
+        //Triggers the list update
+        notifyDataSetChanged();
     }
 
     // кол-во элементов
@@ -64,5 +72,12 @@ public class IssueAdapter extends BaseAdapter {
         Picasso.with(ctx).load(p.Thumb).into(iv);
 
         return view;
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id)
+    {
+        Toast.makeText(ctx, "onItemClick LV Adapter called", Toast.LENGTH_LONG).show();
+
     }
 }
