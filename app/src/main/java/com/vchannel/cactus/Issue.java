@@ -5,13 +5,13 @@ package com.vchannel.cactus;
  */
 
 public class Issue {
-    String URL;
+    String ID;
     String Thumb;
     String Title;
     String Meta;
 
-    Issue(String url, String thumb, String title, String meta) {
-        URL = url;
+    Issue(String id, String thumb, String title, String meta) {
+        ID = id;
         Thumb = thumb;
         Title = title;
         Meta = meta;

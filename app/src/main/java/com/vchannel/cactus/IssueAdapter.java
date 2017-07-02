@@ -1,6 +1,5 @@
 package com.vchannel.cactus;
 
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -9,7 +8,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -17,7 +15,7 @@ import com.squareup.picasso.Picasso;
  * Created by sseitov on 01.07.17.
  */
 
-public class IssueAdapter extends BaseAdapter implements AdapterView.OnItemClickListener {
+public class IssueAdapter extends BaseAdapter {
     Context ctx;
     LayoutInflater inflater;
     ArrayList<Issue> objects;
@@ -56,6 +54,8 @@ public class IssueAdapter extends BaseAdapter implements AdapterView.OnItemClick
         return ((Issue) getItem(position));
     }
 
+    MainActivity getActivity() { return (MainActivity)ctx; }
+
     // пункт списка
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
@@ -64,20 +64,35 @@ public class IssueAdapter extends BaseAdapter implements AdapterView.OnItemClick
             view = inflater.inflate(R.layout.issue, parent, false);
         }
 
-        Issue p = getIssue(position);
+        final Issue p = getIssue(position);
 
-        ((TextView) view.findViewById(R.id.titleView)).setText(p.Title);
-        ((TextView) view.findViewById(R.id.metaView)).setText(p.Meta);
+        TextView tv1 = (TextView) view.findViewById(R.id.titleView);
+        tv1.setText(p.Title);
+        tv1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getActivity().showIssue(p.ID);
+            }
+        });
+
+        TextView tv2 = (TextView) view.findViewById(R.id.metaView);
+        tv2.setText(p.Meta);
+        tv2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getActivity().showIssue(p.ID);
+            }
+        });
         ImageView iv = (ImageView) view.findViewById(R.id.imageView);
         Picasso.with(ctx).load(p.Thumb).into(iv);
 
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getActivity().showIssue(p.ID);
+            }
+        });
+
         return view;
-    }
-
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id)
-    {
-        Toast.makeText(ctx, "onItemClick LV Adapter called", Toast.LENGTH_LONG).show();
-
     }
 }

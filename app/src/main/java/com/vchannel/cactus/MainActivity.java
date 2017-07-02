@@ -1,5 +1,8 @@
 package com.vchannel.cactus;
 
+import android.content.Intent;
+import android.os.Handler;
+import android.support.v4.widget.ViewDragHelper;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.ListView;
@@ -15,15 +18,47 @@ import android.app.ProgressDialog;
 import java.io.IOException;
 
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.widget.Toast;
 
-import android.util.SparseArray;
-import at.huber.youtubeExtractor.VideoMeta;
-import at.huber.youtubeExtractor.YouTubeExtractor;
-import at.huber.youtubeExtractor.YtFile;
+import com.commit451.youtubeextractor.YouTubeExtractionResult;
+import com.commit451.youtubeextractor.YouTubeExtractor;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
 
-    final String LOG_TAG = "myLogs";
+    private final YouTubeExtractor extractor = YouTubeExtractor.create();
+
+    private Callback<YouTubeExtractionResult> extractionResultCallback = new Callback<YouTubeExtractionResult>() {
+        @Override
+        public void onResponse(Call<YouTubeExtractionResult> call, Response<YouTubeExtractionResult> response) {
+            // Close the progressdialog
+            progressDialog.dismiss();
+            bindVideoResult(response.body());
+        }
+
+        @Override
+        public void onFailure(Call<YouTubeExtractionResult> call, Throwable t) {
+            // Close the progressdialog
+            progressDialog.dismiss();
+            onError(t);
+        }
+    };
+    private void onError(Throwable t) {
+        t.printStackTrace();
+        Toast.makeText(MainActivity.this, "It failed to extract. So sad", Toast.LENGTH_SHORT).show();
+    }
+
+
+    private void bindVideoResult(YouTubeExtractionResult result) {
+        Intent myIntent = new Intent(MainActivity.this, VideoActivity.class);
+        Bundle b = new Bundle();
+        b.putString("url", result.getSd360VideoUri().toString());
+        myIntent.putExtras(b);
+        startActivity(myIntent);
+    }
 
     private ArrayList<Issue> issues = new ArrayList<Issue>();
     private IssueAdapter issueAdapter;
@@ -49,71 +84,26 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         setTitle(R.string.app_title);
 
         swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        swipeRefreshLayout.setOnRefreshListener(this);
 
         issueAdapter = new IssueAdapter(MainActivity.this, issues);
 
         ListView lvMain = (ListView) findViewById(R.id.listView);
         lvMain.setAdapter(issueAdapter);
-/*
-        lvMain.setOnItemClickListener(new OnItemClickListener() {
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-                Log.d(LOG_TAG, "itemClick: position = " + position + ", id = " + id);            }
-        });
-        lvMain.setOnItemSelectedListener(new OnItemSelectedListener() {
-            public void onItemSelected(AdapterView<?> parent, View view,
-                                       int position, long id) {
-                Log.d(LOG_TAG, "itemSelect: position = " + position + ", id = " + id);
-            }
-
-            public void onNothingSelected(AdapterView<?> parent) {
-                Log.d(LOG_TAG, "itemSelect: nothing");
-            }
-        });
-        */
-/*
-        lvMain.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Issue issue = issueAdapter.getIssue(position);
-
-                // Create a progressdialog
-                progressDialog = new ProgressDialog(MainActivity.this);
-                // Set progressdialog message
-                progressDialog.setMessage("Refresh...");
-                progressDialog.setIndeterminate(false);
-                // Show progressdialog
-                progressDialog.show();
-
-                new YouTubeExtractor(MainActivity.this) {
-                    @Override
-                    public void onExtractionComplete(SparseArray<YtFile> ytFiles, VideoMeta vMeta) {
-                        if (ytFiles != null) {
-                            int itag = 22;
-                            String videoUrl = ytFiles.get(itag).getUrl();
-
-                        }
-                    }
-                }.extract(issue.URL, true, true);
-            }
-        });
-        */
-/*
-        {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position,
-                                    long id) {
-
-                Intent intent = new Intent(context, SendMessage.class);
-                String message = "abc";
-                intent.putExtra(EXTRA_MESSAGE, message);
-                startActivity(intent);
-            }
-        });
-*/
-        swipeRefreshLayout.setOnRefreshListener(this);
 
         refresh();
+    }
+
+    public void showIssue(String youtubeID) {
+        // Create a progressdialog
+        progressDialog = new ProgressDialog(MainActivity.this);
+        progressDialog.setTitle(R.string.app_title);
+        progressDialog.setMessage("Load...");
+        progressDialog.setIndeterminate(false);
+        // Show progressdialog
+        progressDialog.show();
+
+        extractor.extract(youtubeID).enqueue(extractionResultCallback);
     }
 
     @Override
@@ -135,8 +125,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
             // showing refresh animation before making http call
             swipeRefreshLayout.setRefreshing(true);
-/*
-            */
         }
 
         @Override
@@ -147,7 +135,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
                 for (Element div : doc.select("div[data-context-item-id]")) {
                     String id = div.attr("data-context-item-id");
-                    String urlString = "https://www.youtube.com/watch?v=" + id;
                     String title = "";
                     String thumb = "";
                     String meta = "";
@@ -167,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                             meta += child.text() + " ";
                         }
                     }
-                    Issue issue = new Issue(urlString, thumb, title, meta);
+                    Issue issue = new Issue(id, thumb, title, meta);
                     issues.add(issue);
                 }
 
@@ -185,9 +172,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
             // stopping swipe refresh
             swipeRefreshLayout.setRefreshing(false);
-
-            // Close the progressdialog
-//            progressDialog.dismiss();
         }
     }
 }
