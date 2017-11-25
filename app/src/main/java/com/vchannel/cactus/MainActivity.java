@@ -53,9 +53,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void bindVideoResult(YouTubeExtractionResult result) {
         Intent myIntent = new Intent(MainActivity.this, VideoActivity.class);
-        Bundle b = new Bundle();
-        b.putString("url", result.getSd360VideoUri().toString());
-        myIntent.putExtras(b);
+        myIntent.setData(result.getSd360VideoUri());
         startActivity(myIntent);
     }
 
@@ -130,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private static class JsoupTask extends AsyncTask<String, Void, Void> {
         private IssuesListener listener;
 
-        public JsoupTask(IssuesListener listener){
+        JsoupTask(IssuesListener listener){
             this.listener=listener;
         }
 

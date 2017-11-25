@@ -1,6 +1,7 @@
 package com.vchannel.cactus;
 
 import android.app.ProgressDialog;
+import android.content.res.Configuration;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
@@ -20,8 +21,7 @@ public class VideoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_video);
         videoview = (VideoView) findViewById(R.id.VideoView);
 
-        Bundle b = getIntent().getExtras();
-        String VideoURL = b.getString("url");
+        Uri video = getIntent().getData();
 
         progressDialog = new ProgressDialog(VideoActivity.this);
         progressDialog.setTitle(R.string.app_title);
@@ -35,7 +35,6 @@ public class VideoActivity extends AppCompatActivity {
             MediaController mediacontroller = new MediaController(VideoActivity.this);
             mediacontroller.setAnchorView(videoview);
             // Get the URL from String VideoURL
-            Uri video = Uri.parse(VideoURL);
             videoview.setMediaController(mediacontroller);
             videoview.setVideoURI(video);
 
@@ -51,6 +50,11 @@ public class VideoActivity extends AppCompatActivity {
                 videoview.start();
             }
         });
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
     }
 
 }
