@@ -1,11 +1,10 @@
 package com.vchannel.cactus;
 
 import android.content.Intent;
-import android.os.Handler;
-import android.support.v4.widget.ViewDragHelper;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.ListView;
+
 import java.util.ArrayList;
 
 import org.jsoup.Jsoup;
@@ -27,7 +26,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, IssuesListener {
 
     private final YouTubeExtractor extractor = YouTubeExtractor.create();
 
@@ -62,9 +61,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private ArrayList<Issue> issues = new ArrayList<Issue>();
     private IssueAdapter issueAdapter;
-    private String url = "https://www.youtube.com/channel/UCgxTPTFbIbCWfTR9I2-5SeQ/videos";
-    private ProgressDialog progressDialog;
     private SwipeRefreshLayout swipeRefreshLayout;
+    private ProgressDialog progressDialog;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -112,27 +110,42 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
     private void refresh() {
+        swipeRefreshLayout.setRefreshing(true);
         // Execute DownloadJSON AsyncTask
-        new JsoupTask().execute();
+        JsoupTask refreshTask = new JsoupTask(this);
+        refreshTask.execute("https://www.youtube.com/channel/UCgxTPTFbIbCWfTR9I2-5SeQ/videos");
+    }
+
+    public void onAddIssue(Issue issue) {
+        issues.add(issue);
+    }
+
+    public void onTaskCompleted() {
+        issueAdapter.updateList(issues);
+        // stopping swipe refresh
+        swipeRefreshLayout.setRefreshing(false);
     }
 
     // JSoup AsyncTask
-    private class JsoupTask extends AsyncTask<Void, Void, Void> {
+    private static class JsoupTask extends AsyncTask<String, Void, Void> {
+        private IssuesListener listener;
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-
-            // showing refresh animation before making http call
-            swipeRefreshLayout.setRefreshing(true);
+        public JsoupTask(IssuesListener listener){
+            this.listener=listener;
         }
 
         @Override
-        protected Void doInBackground(Void... params) {
-            try {
-                // Connect to the Website URL
-                Document doc = Jsoup.connect(url).get();
+        protected Void doInBackground(String... params) {
+            // Connect to the Website URL
+            String url = params[0];
 
+            try {
+                Document doc = Jsoup.connect(url)
+                        .header("Accept-Encoding", "gzip, deflate")
+                        .userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20100101 Firefox/23.0")
+                        .maxBodySize(0)
+                        .timeout(600000)
+                        .get();
                 for (Element div : doc.select("div[data-context-item-id]")) {
                     String id = div.attr("data-context-item-id");
                     String title = "";
@@ -155,12 +168,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                         }
                     }
                     Issue issue = new Issue(id, thumb, title, meta);
-                    issues.add(issue);
+                    listener.onAddIssue(issue);
                 }
+            } catch (IOException ex) {
 
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
             }
 
             return null;
@@ -168,10 +179,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         @Override
         protected void onPostExecute(Void result) {
-            issueAdapter.updateList(issues);
-
-            // stopping swipe refresh
-            swipeRefreshLayout.setRefreshing(false);
+            listener.onTaskCompleted();
+            super.onPostExecute(result);
         }
     }
 }
